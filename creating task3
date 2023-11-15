@@ -1,0 +1,269 @@
+#include <iostream>
+#include <algorithm>
+#include <string>
+#include <bits/stdc++.h>
+using namespace std;
+class memory {
+private:
+    vector<string>instruction;
+    vector<string>rgst;
+    vector<string>address;
+public:
+    vector< pair<string,string>> cells;
+    vector<pair<string,string>>registers;
+    vector<string>instructions;
+    void readinputfile(const string &filename){
+        ifstream inputfile (filename+".txt");
+        string line;
+        int i=0;
+        while (getline(inputfile, line)){
+            instruction.resize(i+1);
+            rgst.resize(i+1);
+            address.resize(i+1);
+            instructions.push_back(line);
+            instruction[i]=line.substr(0,1);
+            rgst[i]=line.substr(1,1);
+            address[i]=line.substr(2,2);
+            cells.push_back(make_pair(address[i],"00"));
+            registers.push_back(make_pair(rgst[i],"0"));
+            ++i;
+        }
+
+        inputfile.close();
+    }
+    string read(string adds) {
+        for (const auto &cell: cells) {
+            if (cell.first==adds) {
+                return cell.second;
+            }
+        }
+        return "0";
+    }
+    void write (string adds ,string value ) {
+        for (auto &cell: cells) {
+            if (cell.first == adds) {
+                cell.second = value;
+            } else
+                cout << "error ,invalid memory address ."<<endl;
+        }
+    }
+//    void print(){
+//        for (int i = 0; i < instruction.size(); ++i) {
+//            cout<<instruction[i]<<rgst[i]<<' '<<address[i]<<endl;
+//        }
+//    }
+};
+class decode {
+private:
+    string instruct1,reg,add1;
+public:
+    decode(){};
+    decode ( const string& instruct){
+        instruct1=instruct.substr(0,1);
+        reg=instruct.substr(1,1);
+        add1=instruct.substr(2,2);
+    }
+    string getinstruct() const {
+        return instruct1;
+    }
+    string getregister() const {
+        return reg;
+    }
+    string getaddress()const{
+        return add1;
+    }
+};
+class machine{
+private:
+
+    memory m1;
+    decode d1;
+public:
+    machine() {
+        }
+    int programcounter=0;
+    void load(const string& instruction){
+        decode d1(instruction);
+        string reg=d1.getregister();
+        string add=d1.getaddress();
+        string value=m1.read(add);
+        for (auto &r: m1.registers){
+            if(r.first==reg){
+                r.second=value;
+                return;
+            }
+        }
+        cout<<"Error,register not found";
+    }
+    void loadBitPattern(const string& instruction){
+        decode d1(instruction);
+        string reg=d1.getregister();
+        string add=d1.getaddress();
+        for (auto &r: m1.registers){
+            if(r.first==reg){
+                r.second=add;
+                return;
+            }
+        }
+        cout<<"Error,register not found";
+    }
+    void store(const string& instruction){
+        decode d1(instruction);
+        string reg=d1.getregister();
+        string add=d1.getaddress();
+        string val;
+        if(add=="00"){
+            for (auto &r: m1.registers) {
+                if(r.first==reg){
+                    val=r.second;
+                    cout<<"writing to screen: "<<val<<endl;
+                    return;
+                }
+            }
+            cout<<"Error,register not found";
+        }
+        else{
+            for (auto &r: m1.registers) {
+                if(r.first==reg){
+                    val=r.second;
+                    m1.write(add,val);
+                    return;
+                }
+            }
+            cout<<"Error,register not found";
+        }
+    }
+    void move(const string& instruction){
+        decode d1(instruction);
+        string add=d1.getaddress();
+        string rtemp1=add.substr(0,1);
+        string rtemp2=add.substr(1,1);
+        string temp1,temp2;
+        for (auto &r: m1.registers) {
+            if(r.first==rtemp1){
+                temp1=r.second;
+            }
+            if(r.first==rtemp2){
+                temp2=r.second;
+            }
+        }
+        for (auto &r: m1.registers) {
+            if(r.first==rtemp1){
+                r.second=temp2;
+            }
+            if(r.first==rtemp2){
+                r.second=temp1;
+            }
+        }
+    }
+    void add(const string& instruction) {
+        decode d1(instruction);
+        string regadd = d1.getregister();
+        string reg1 = d1.getaddress().substr(0, 1);
+        string reg2 = d1.getaddress().substr(1, 1);
+
+        string value1, value2;
+        for (const auto &r : m1.registers) {
+            if (r.first == reg1) {
+                value1 = r.second;
+            }
+            if (r.first == reg2) {
+                value2 = r.second;
+            }
+        }
+
+        int intVal1 = stoi(value1, nullptr, 2);
+        int intVal2 = stoi(value2, nullptr, 2);
+        int intResult = intVal1 + intVal2;
+
+        string result = bitset<16>(intResult).to_string();
+
+        for (auto &r : m1.registers) {
+            if (r.first == regadd) {
+                r.second = result;
+                return;
+            }
+        }
+
+        cout << "Error, register not found";
+    }
+
+    void jump(const string& instruction){
+        decode d1(instruction);
+        string reg = d1.getregister();
+        string add = d1.getaddress();
+        string bitpattern;
+        for (const auto& reg1 : m1.registers) {
+            if (reg1.first == reg) {
+                bitpattern = reg1.second;
+                break;
+            }
+
+        }
+
+        if (bitpattern == m1.registers[0].second) {
+            programcounter = stoi(add);
+            return;
+
+
+
+        } else {
+            cout<<"error finding register"<<endl;
+            programcounter+=1;
+        }
+    }
+    void execute() {
+        while (programcounter < m1.instructions.size()) {
+            d1 = decode(m1.instructions[programcounter]);
+            string opcode = d1.getinstruct();
+
+            if (opcode == "C") {
+                cout << "HALT executed. Program terminated." << endl;
+                break;
+            }
+
+            if (opcode == "1") {
+                load(m1.instructions[programcounter]);
+            } else if (opcode == "2") {
+                loadBitPattern(m1.instructions[programcounter]);
+            } else if (opcode == "3") {
+                store(m1.instructions[programcounter]);
+            } else if (opcode == "4") {
+                move(m1.instructions[programcounter]);
+            } else if (opcode == "5") {
+                add(m1.instructions[programcounter]);
+            } else if (opcode == "B") {
+                jump(m1.instructions[programcounter]);
+            }
+
+            programcounter++;
+        }
+    }
+    void displayRegisters() const {
+        cout << "Register Content:" << endl;
+        for (const auto &r : m1.registers) {
+            cout << "Register: " << r.first << ", Value: 0x" << r.second << endl;
+        }
+        cout << endl;
+
+        cout << "Program Counter: " << programcounter << endl;
+    }
+
+    void displayMemory() const {
+        cout << "Memory Content:" << endl;
+        for (const auto &cell : m1.cells) {
+            cout << "Address: " << cell.first << ", Value: 0x" << cell.second << endl;
+        }
+        cout << endl;
+    }
+
+};
+int main(){
+    memory myMachine1;
+    machine myMachine2;
+    myMachine1.readinputfile("test111");
+    myMachine2.execute();
+    myMachine2.displayMemory();
+    myMachine2.displayRegisters();
+
+}
