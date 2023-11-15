@@ -50,11 +50,7 @@ public:
                 cout << "error ,invalid memory address ."<<endl;
         }
     }
-//    void print(){
-//        for (int i = 0; i < instruction.size(); ++i) {
-//            cout<<instruction[i]<<rgst[i]<<' '<<address[i]<<endl;
-//        }
-//    }
+
 };
 class decode {
 private:
@@ -98,7 +94,8 @@ public:
         }
         cout<<"Error,register not found";
     }
-    void loadBitPattern(const string& instruction){
+    void loadBitPattern(const string& instruction)
+{
         decode d1(instruction);
         string reg=d1.getregister();
         string add=d1.getaddress();
@@ -110,7 +107,8 @@ public:
         }
         cout<<"Error,register not found";
     }
-    void store(const string& instruction){
+    void store(const string& instruction)
+{
         decode d1(instruction);
         string reg=d1.getregister();
         string add=d1.getaddress();
